@@ -1,0 +1,193 @@
+swagger: '2.0'
+info:
+  version: '1.2a'
+  title: KantorCabang
+  license:
+    name: GPL
+    url: 'https://www.gnu.org/licenses/gpl-3.0.en.html'
+host: '0.0.0.0:80'
+basePath: '/ewallet/'
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /getSaldo:
+    post:
+      description: Mendapatkan saldo suatu pengguna di suatu lokasi
+      tags:
+        - Credit Query
+      operationId: app.get_saldo
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/GetSaldoRequest'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/GetSaldoResponse'
+          examples: {}
+  /getTotalSaldo:
+    post:
+      description: Mendapatkan total saldo suatu pengguna
+      tags:
+        - Credit Query
+      operationId: app.get_total_saldo
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/GetSaldoRequest'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/GetSaldoResponse'
+          examples: {}
+  /ping:
+    post:
+      description: Mengecek keaktifan suatu servis
+      tags:
+        - Utilities
+      operationId: app.ping
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/PingResponse'
+          examples: {}
+  /register:
+    post:
+      description: Mendaftarkan pengguna
+      tags:
+        - Bank Activities
+      operationId: app.register
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RegisterRequest'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/RegResponse'
+  /transfer:
+    post:
+      description: Melakukan pemindahbukuan atas nama pengguna
+      tags:
+        - Bank Activities
+      operationId: app.transfer
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/TransferRequest'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/TransferResponse'
+          examples: {}
+definitions:
+  GetSaldoRequest:
+    title: getSaldo Request Schema
+    type: object
+    properties:
+      user_id:
+        description: 'User ID yang ingin diquery'
+        type: string
+    required:
+      - user_id
+  GetSaldoResponse:
+    title: getSaldo Response Schema
+    type: object
+    properties:
+      nilai_saldo:
+        description: 'Saldo yang diminta'
+        type: integer
+        format: int32
+        enum: [1, -2, -3, -4, -99]
+        default: 1
+    required:
+      - nilai_saldo
+  PingResponse:
+    title: ping Response Schema
+    type: object
+    properties:
+      pong:
+        description: 'Status terkini service'
+        type: integer
+        format: int32
+        enum: [1, -99]
+        default: 1
+    required:
+      - pong
+  RegResponse:
+    title: register Response Schema
+    type: object
+    properties:
+      status_register:
+        description: ''
+        type: integer
+        format: int32
+        enum: [1, -2, -4, -99]
+        default: 1
+    required:
+      - status_register
+  RegisterRequest:
+    title: register Request Schema
+    type: object
+    properties:
+      user_id:
+        description: 'User ID yang ingin didaftarkan'
+        type: string
+      nama:
+        description: 'Nama pengguna yang ingin didaftarkan'
+        type: string
+    required:
+      - user_id
+      - nama
+  TransferRequest:
+    title: transfer Request Schema
+    type: object
+    properties:
+      user_id:
+        description: 'User ID sebagai target pemindahbukuan'
+        type: string
+      nilai:
+        description: 'Jumlah yang ingin ditransfer'
+        type: integer
+        format: int32
+    required:
+      - user_id
+      - nilai
+  TransferResponse:
+    title: transfer Response Schema
+    type: object
+    properties:
+      status_transfer:
+        description: 'Return status dari aktivitas transfer yang dimaksud'
+        type: integer
+        format: int32
+        enum: [1, -2, -4, -5, -99]
+        default: 1
+    required:
+      - status_transfer
