@@ -8,7 +8,8 @@ ADD requirements.txt /opt/ewallet/requirements.txt
 RUN pip2 install -r /opt/ewallet/requirements.txt
 
 ADD src /opt/ewallet
+RUN rm /opt/ewallet/ewallet.db
 WORKDIR /opt/ewallet/
 
 EXPOSE 80
-CMD python2 app.py --host 0.0.0.0 --port 80
+CMD python2 app.py --host 0.0.0.0 --port 80 --debug

@@ -2,6 +2,7 @@ import requests
 
 import codes
 import common
+import settings
 import url_utils
 
 def parametrized(dec):
@@ -12,7 +13,7 @@ def parametrized(dec):
 	return layer
 
 def inquire():
-	node_list = common.get_node_list()
+	node_list = common.get_node_list(debug=settings.DEBUG)
 
 	healthy_nodes = []
 	for node in node_list:
