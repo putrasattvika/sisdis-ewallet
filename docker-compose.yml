@@ -1,0 +1,20 @@
+# Start all containers by running:
+#   docker-compose build && docker-compose up scale ewallet=5 [-d]
+
+version: '2'
+
+services:
+  ewallet:
+    image: sattvika/sisdis-ewallet
+    build:
+      context: .
+    networks:
+      - ewallet
+
+networks:
+  ewallet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
