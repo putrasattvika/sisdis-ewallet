@@ -11,7 +11,7 @@ from helper import definition
 
 from helper.errors import *
 
-@quorum(5, definition.balance_inquiry_response)
+# @quorum(5, definition.balance_inquiry_response)
 def get_saldo(body, healthy_nodes=[]):
 	balance = 0
 	status_code = None
@@ -23,7 +23,6 @@ def get_saldo(body, healthy_nodes=[]):
 
 		if not user:
 			status_code = codes.USER_DOES_NOT_EXISTS_ERROR
-			banking.register({ 'user_id': user_id, 'nama': None })
 		else:
 			balance = user['balance']
 	except DBError as e:
@@ -33,7 +32,7 @@ def get_saldo(body, healthy_nodes=[]):
 
 	return definition.balance_inquiry_response(balance, status_code=status_code)
 
-@quorum(8, definition.balance_inquiry_response)
+# @quorum(8, definition.balance_inquiry_response)
 def get_total_saldo(body, healthy_nodes=[]):
 	balance = 0
 	status_code = None

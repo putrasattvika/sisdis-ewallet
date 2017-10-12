@@ -5,7 +5,7 @@ from helper import definition
 
 from helper.errors import *
 
-@quorum(5, definition.register_response)
+# @quorum(5, definition.register_response)
 def register(body, healthy_nodes=[]):
 	status_code = codes.UNKNOWN_ERROR
 
@@ -23,7 +23,7 @@ def register(body, healthy_nodes=[]):
 
 	return definition.register_response(status_code)
 
-@quorum(5, definition.transfer_response)
+# @quorum(5, definition.transfer_response)
 def transfer(body, healthy_nodes=[]):
 	status_code = codes.UNKNOWN_ERROR
 

@@ -1,6 +1,6 @@
 import requests
 
-
+NODE_ID = '1406527532'
 NODE_LIST_URL = 'http://152.118.31.2/list.php'
 DEBUG_NODE_LIST_URL = 'http://172.21.0.1:5000/'
 
