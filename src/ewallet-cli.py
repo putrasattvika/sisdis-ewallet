@@ -78,10 +78,23 @@ def handle(host, cmd, parameters):
 		print '[!] user_id ({}) is not present in this node.'.format(parameters['user_id'])
 		exit(1)
 
-	res = ewallet_post(host, cmd, parameters)
 	if cmd == 'get-saldo':
+		res = ewallet_post(host, cmd, parameters)
+
 		if res['nilai_saldo'] == -1:
 			ewallet_post(host, 'register', {'user_id': user['user_id'], 'nama': user['name']})
+	elif cmd == 'transfer':
+		if user['balance'] < parameters['nilai']:
+			print '[!] Not enough balance for user_id ({}) in this node [balance={}, amount={}].' \
+				.format(parameters['user_id'], user['balance'], parameters['nilai'])
+
+			exit(1)
+
+		res = ewallet_post(host, cmd, parameters)
+		if res['status_transfer'] == 1:
+			helper.db.alter_balance(user['user_id'], delta=-parameters['nilai'])
+	else:
+		res = ewallet_post(host, cmd, parameters)
 
 	return res
 
