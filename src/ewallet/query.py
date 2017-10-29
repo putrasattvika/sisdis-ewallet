@@ -1,11 +1,10 @@
 import json
 import requests
 
-import banking
-
 from helper import db
 from helper import codes
 from helper import quorum
+from helper import settings
 from helper import url_utils
 from helper import definition
 
@@ -39,19 +38,26 @@ def get_total_saldo(body, healthy_nodes=[]):
 
 	user_id = body['user_id']
 
-	for node in healthy_nodes:
-		url = url_utils.get_url(node['ip'], url_utils.GET_BALANCE)
+	try:
 		headers = { 'content-type': 'application/json' }
 		data = json.dumps({ 'user_id': user_id })
 
-		try:
-			res = requests.post(url, data=data, headers=headers, timeout=1).json()
-			balance += res['nilai_saldo']
-		except requests.exceptions.ConnectionError as e:
-			status_code = codes.NODE_UNREACHABLE_ERROR
-			break
-		except Exception as e:
-			status_code = codes.UNKNOWN_ERROR
-			break
+		if user_id == settings.NODE_ID:
+			for node in healthy_nodes:
+				url = url_utils.get_url(node['ip'], url_utils.GET_BALANCE)
+				res = requests.post(url, data=data, headers=headers, timeout=1).json()
+
+				if res['nilai_saldo'] >= 0:
+					balance += res['nilai_saldo']
+		else:
+			for node in healthy_nodes:
+				if node['npm'] == user_id:
+					url = url_utils.get_url(node['ip'], url_utils.GET_TOTAL_BALANCE)
+					res = requests.post(url, data=data, headers=headers, timeout=1).json()
+					balance = res['nilai_saldo']
+	except requests.exceptions.ConnectionError as e:
+		status_code = codes.NODE_UNREACHABLE_ERROR
+	except Exception as e:
+		status_code = codes.UNKNOWN_ERROR
 
 	return definition.balance_inquiry_response(balance, status_code=status_code)

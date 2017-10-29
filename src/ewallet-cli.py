@@ -69,12 +69,12 @@ def ewallet_post(host, cmd, parameters):
 def handle(host, cmd, parameters):
 	helper.db.init_db(DB_FILE)
 
-	if cmd == 'ping':
+	if cmd == 'ping' or cmd == 'get-total-saldo' or cmd == 'register':
 		return ewallet_post(host, cmd, parameters)
 
 	user = helper.db.get_user(parameters['user_id'])
 
-	if cmd != 'register' and not user:
+	if not user:
 		print '[!] user_id ({}) is not present in this node.'.format(parameters['user_id'])
 		exit(1)
 

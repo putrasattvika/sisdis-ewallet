@@ -43,7 +43,6 @@ def transfer(body, healthy_nodes=[]):
 	except DBError as e:
 		status_code = codes.DATABASE_ERROR
 	except Exception as e:
-		print e.message
 		status_code = codes.UNKNOWN_ERROR
 
 	return definition.transfer_response(status_code)

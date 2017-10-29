@@ -7,9 +7,16 @@ RUN apt-get install -y python-minimal python-pip
 ADD requirements.txt /opt/ewallet/requirements.txt
 RUN pip2 install -r /opt/ewallet/requirements.txt
 
+RUN apt-get update -y
+RUN apt-get install -y curl
+
 ADD src /opt/ewallet
 RUN rm /opt/ewallet/ewallet.db
-WORKDIR /opt/ewallet/
+
+ADD scripts/entrypoint.sh /opt/ewallet/entrypoint.sh
+RUN chmod 0755 /opt/ewallet/entrypoint.sh
 
 EXPOSE 80
-CMD python2 app.py --host 0.0.0.0 --port 80 --debug
+WORKDIR /opt/ewallet/
+
+CMD ./entrypoint.sh
