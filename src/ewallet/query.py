@@ -34,6 +34,7 @@ def get_saldo(body, healthy_nodes=[]):
 @quorum(8, definition.balance_inquiry_response)
 def get_total_saldo(body, healthy_nodes=[]):
 	balance = 0
+	get_total_saldo_user_found = False
 	status_code = None
 
 	user_id = body['user_id']
@@ -54,7 +55,12 @@ def get_total_saldo(body, healthy_nodes=[]):
 				if node['npm'] == user_id:
 					url = url_utils.get_url(node['ip'], url_utils.GET_TOTAL_BALANCE)
 					res = requests.post(url, data=data, headers=headers, timeout=1).json()
+					
 					balance = res['nilai_saldo']
+					get_total_saldo_user_found = True
+
+			if not get_total_saldo_user_found:
+				status_code = codes.USER_DOES_NOT_EXISTS_ERROR
 	except requests.exceptions.ConnectionError as e:
 		status_code = codes.NODE_UNREACHABLE_ERROR
 	except Exception as e:
