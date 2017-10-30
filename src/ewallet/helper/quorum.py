@@ -19,10 +19,13 @@ def inquire():
 	for node in node_list:
 		url = url_utils.get_url(node['ip'], url_utils.PING)
 
-		res = requests.post(url, timeout=1).json()
+		try:
+			res = requests.post(url, timeout=1).json()
 
-		if res['pong'] == 1:
-			healthy_nodes.append(node)
+			if res['pong'] == 1:
+				healthy_nodes.append(node)
+		except:
+			pass
 
 	return healthy_nodes
 
