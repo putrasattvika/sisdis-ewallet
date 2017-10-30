@@ -7,6 +7,11 @@ First project of Distributed System class, Fasilkom UI 2017/2018.
  * Install PIP requirements, `pip2 install -r requirements.txt`
  * Run the app, `cd src && python2 app.py --host 0.0.0.0 --port 5000`
 
+## Testing
+ * `docker-compose build`
+ * (in another terminal) `python2 scripts/node_list.py`
+ * `docker-compose up --scale ewallet=8`
+
 ## eWallet Server
 ```
 python2 app.py --help
