@@ -64,7 +64,7 @@ def get_args():
 def ewallet_post(host, cmd, parameters):
 	url = helper.url_utils.get_url(host, API_MAP[cmd])
 
-	return requests.post(url, headers=DEFAULT_HEADERS, data=json.dumps(parameters), timeout=1).json()
+	return requests.post(url, headers=DEFAULT_HEADERS, data=json.dumps(parameters)).json()
 
 def handle(host, cmd, parameters):
 	helper.db.init_db(DB_FILE)
