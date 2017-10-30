@@ -61,7 +61,7 @@ def get_total_saldo(body, healthy_nodes=[]):
 
 			if not get_total_saldo_user_found:
 				status_code = codes.USER_DOES_NOT_EXISTS_ERROR
-	except requests.exceptions.ConnectionError as e:
+	except requests.exceptions.RequestException as e:
 		status_code = codes.NODE_UNREACHABLE_ERROR
 	except Exception as e:
 		status_code = codes.UNKNOWN_ERROR
