@@ -1,5 +1,6 @@
 import json
 import requests
+from multiprocessing.pool import ThreadPool
 
 from helper import db
 from helper import codes
@@ -9,6 +10,8 @@ from helper import url_utils
 from helper import definition
 
 from helper.errors import *
+
+pool = ThreadPool(processes=4)
 
 @quorum(5, definition.balance_inquiry_response)
 def get_saldo(body, healthy_nodes=[]):
@@ -31,6 +34,15 @@ def get_saldo(body, healthy_nodes=[]):
 
 	return definition.balance_inquiry_response(balance, status_code=status_code)
 
+def _get_node_saldo(ip, headers, data):
+	url = url_utils.get_url(ip, url_utils.GET_BALANCE)
+	res = requests.post(url, data=data, headers=headers, timeout=5).json()
+
+	if res['nilai_saldo'] >= 0:
+		return res['nilai_saldo']
+
+	return 0
+
 @quorum(8, definition.balance_inquiry_response)
 def get_total_saldo(body, healthy_nodes=[]):
 	balance = 0
@@ -44,12 +56,12 @@ def get_total_saldo(body, healthy_nodes=[]):
 		data = json.dumps({ 'user_id': user_id })
 
 		if user_id == settings.NODE_ID:
+			async_results = []
 			for node in healthy_nodes:
-				url = url_utils.get_url(node['ip'], url_utils.GET_BALANCE)
-				res = requests.post(url, data=data, headers=headers, timeout=5).json()
+				async_results.append( pool.apply_async(_get_node_saldo, (node['ip'],headers, data)) )
 
-				if res['nilai_saldo'] >= 0:
-					balance += res['nilai_saldo']
+			for async in async_results:
+				balance += async.get()
 		else:
 			for node in healthy_nodes:
 				if node['npm'] == user_id:
