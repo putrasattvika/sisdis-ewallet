@@ -46,7 +46,7 @@ def get_total_saldo(body, healthy_nodes=[]):
 		if user_id == settings.NODE_ID:
 			for node in healthy_nodes:
 				url = url_utils.get_url(node['ip'], url_utils.GET_BALANCE)
-				res = requests.post(url, data=data, headers=headers, timeout=1).json()
+				res = requests.post(url, data=data, headers=headers, timeout=5).json()
 
 				if res['nilai_saldo'] >= 0:
 					balance += res['nilai_saldo']
@@ -54,7 +54,7 @@ def get_total_saldo(body, healthy_nodes=[]):
 			for node in healthy_nodes:
 				if node['npm'] == user_id:
 					url = url_utils.get_url(node['ip'], url_utils.GET_TOTAL_BALANCE)
-					res = requests.post(url, data=data, headers=headers, timeout=1).json()
+					res = requests.post(url, data=data, headers=headers, timeout=5).json()
 					
 					balance = res['nilai_saldo']
 					get_total_saldo_user_found = True
