@@ -59,6 +59,11 @@ def get_args():
 	get_total_saldo.add_argument('ip', metavar='IP', help="ewallet node IP")
 	get_total_saldo.add_argument('id', metavar='ID', help="user ID/NPM")
 
+	# Misc
+	## python ewallet-cli.py list
+	node_list = sp.add_parser('list')
+	node_list.add_argument('--debug', action="store_true", help="debug mode")
+
 	return parser.parse_args()
 
 def ewallet_post(host, cmd, parameters):
@@ -98,9 +103,17 @@ def handle(host, cmd, parameters):
 
 	return res
 
+def list_nodes(debug):
+	helper.settings.set('DEBUG', debug)
+	return helper.quorum_inquire()
+
 def main():
 	args = get_args()
 	args_dict = vars(args)
+
+	if args.cmd == 'list':
+		print json.dumps(list_nodes(args.debug), indent=2, sort_keys=True)
+		return
 
 	parameters = {}
 	for a in ARGUMENTS:
