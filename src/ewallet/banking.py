@@ -1,9 +1,13 @@
+import logging
+
 from helper import db
 from helper import codes
 from helper import quorum
 from helper import definition
 
 from helper.errors import *
+
+logger = logging.getLogger('ewallet.banking')
 
 @quorum(5, definition.register_response)
 def register(body, healthy_nodes=[]):
@@ -16,10 +20,13 @@ def register(body, healthy_nodes=[]):
 			status_code = codes.OK
 	except DBUserAlreadyExistsError as e:
 		status_code = codes.DATABASE_ERROR
+		logger.info('[-] User already exsists: %s', e.message)
 	except DBError as e:
 		status_code = codes.DATABASE_ERROR
+		logger.info('[-] Database error: %s', e.message)
 	except Exception as e:
 		status_code = codes.UNKNOWN_ERROR
+		logger.info('[-] Unknown error: %s', e.message)
 
 	return definition.register_response(status_code)
 
@@ -42,7 +49,9 @@ def transfer(body, healthy_nodes=[]):
 			status_code = codes.OK
 	except DBError as e:
 		status_code = codes.DATABASE_ERROR
+		logger.info('[-] Database error: %s', e.message)
 	except Exception as e:
 		status_code = codes.UNKNOWN_ERROR
+		logger.info('[-] Unknown error: %s', e.message)
 
 	return definition.transfer_response(status_code)

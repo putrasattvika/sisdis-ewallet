@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 from multiprocessing.pool import ThreadPool
 
@@ -11,6 +12,7 @@ from helper import definition
 
 from helper.errors import *
 
+logger = logging.getLogger('ewallet.query')
 pool = ThreadPool(processes=4)
 
 @quorum(5, definition.balance_inquiry_response)
@@ -29,8 +31,10 @@ def get_saldo(body, healthy_nodes=[]):
 			balance = user['balance']
 	except DBError as e:
 		status_code = codes.DATABASE_ERROR
+		logger.info('[-] Database error: %s', e.message)
 	except Exception as e:
 		status_code = codes.UNKNOWN_ERROR
+		logger.info('[-] Unknown error: %s', e.message)
 
 	return definition.balance_inquiry_response(balance, status_code=status_code)
 
@@ -75,7 +79,9 @@ def get_total_saldo(body, healthy_nodes=[]):
 				status_code = codes.USER_DOES_NOT_EXISTS_ERROR
 	except requests.exceptions.RequestException as e:
 		status_code = codes.NODE_UNREACHABLE_ERROR
+		logger.info('[-] Node unreachable error: %s', e.message)
 	except Exception as e:
 		status_code = codes.UNKNOWN_ERROR
+		logger.info('[-] Unknown error: %s', e.message)
 
 	return definition.balance_inquiry_response(balance, status_code=status_code)
