@@ -52,7 +52,7 @@ def get_total_saldo(body, healthy_nodes=[]):
 	user_id = body['user_id']
 
 	try:
-		headers = { 'content-type': 'application/json' }
+		headers = { 'content-type': 'application/json', 'accept': 'application/json' }
 		data = json.dumps({ 'user_id': user_id })
 
 		if user_id == settings.NODE_ID:

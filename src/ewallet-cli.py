@@ -23,7 +23,8 @@ ARGUMENTS = {
 DB_FILE = 'ewallet.db'
 
 DEFAULT_HEADERS = {
-	'Content-Type': 'application/json'
+	'Content-Type': 'application/json',
+	'Accept': 'application/json'
 }
 
 def get_args():
