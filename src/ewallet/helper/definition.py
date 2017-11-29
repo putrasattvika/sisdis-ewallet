@@ -1,3 +1,7 @@
+import time
+import settings
+
+from datetime import datetime
 from codes import *
 
 TRANSFER_RESPONSE_CODES = [
@@ -45,3 +49,13 @@ def ping_response(status_code):
 		raise ValueError('Invalid status code')
 
 	return { "pong": status_code }
+
+def ping_mq_payload(timestamp = None):
+	date = datetime.fromtimestamp(timestamp or time.time())
+	date_str = datetime.strftime(date, '%Y-%m-%d %H:%M:%S')
+
+	return {
+		"action": "ping",
+		"npm": settings.NODE_ID,
+		"ts": date_str
+	}

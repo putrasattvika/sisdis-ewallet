@@ -1,3 +1,5 @@
+import msgqueue
+
 from helper import db
 from helper import settings
 from utils import *

@@ -1,3 +1,4 @@
+import time
 import sqlite3
 
 from errors import *
@@ -8,16 +9,22 @@ def init_db(dbfile):
 	conn = sqlite3.connect(__DBFILE)
 	c = conn.cursor()
 
-	query = '''
+	c.execute('''
 		CREATE TABLE IF NOT EXISTS ewallet (
 			user_id		text,
 			name		text,
 			balance		text,
 			PRIMARY KEY (user_id)
 		)
-	'''
+	''')
 
-	c.execute(query)
+	c.execute('''
+		CREATE TABLE IF NOT EXISTS ewallet_nodes (
+			npm			text,
+			timestamp	integer,
+			PRIMARY KEY (npm)
+		)
+	''')	
 
 	conn.commit()
 	conn.close()
@@ -92,3 +99,39 @@ def alter_balance(user_id, balance=None, delta=None):
 	conn.close()
 
 	return get_user(user_id)
+
+def update_node_ping(npm, timestamp):
+	conn = sqlite3.connect(__DBFILE)
+	c = conn.cursor()
+
+	query = '''
+		INSERT OR REPLACE INTO ewallet_nodes (npm, timestamp)
+		VALUES ( ?, ? );
+	'''
+
+	c.execute(query, (npm, timestamp))
+
+	conn.commit()
+	conn.close()
+
+def get_live_nodes(time_limit_secs=10):
+	conn = sqlite3.connect(__DBFILE)
+	c = conn.cursor()
+
+	query = '''
+		SELECT npm
+		FROM ewallet_nodes
+		WHERE timestamp >= ?;
+	'''
+
+	c.execute(query, (time.time() - time_limit_secs, ))
+	q_result = c.fetchall()
+	conn.close()
+
+	result = []
+	for qr in q_result:
+		result.append({
+			'npm': qr[0]
+		})
+
+	return result
