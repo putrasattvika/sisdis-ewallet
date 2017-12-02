@@ -5,15 +5,16 @@ import logging
 import threading
 
 from ewallet.helper import codes
+from ewallet.helper import settings
 from ewallet.helper import definition
 
+logger = logging.getLogger(__name__)
+
 class PingPublisher(object):
-	def __init__(self, connection_creator, exchange, routing_key, interval=3):
+	def __init__(self, connection_creator, interval=3):
 		super(PingPublisher, self).__init__()
 
 		self.connection_creator = connection_creator
-		self.exchange = exchange
-		self.routing_key = routing_key
 		self.interval = interval
 
 	def start(self):
@@ -31,11 +32,12 @@ class PingPublisher(object):
 	def run(self):
 		while self.is_running:
 			self.channel, self.queue = self.connection_creator.get_connection()
-			self.channel.queue_bind(self.queue.method.queue, self.exchange)
+			self.channel.queue_bind(self.queue.method.queue, settings.mq_ping['exchange'])
 
+			logger.info('publishing ping..')
 			self.channel.basic_publish(
-				exchange = self.exchange,
-				routing_key = self.routing_key,
+				exchange = settings.mq_ping['exchange'],
+				routing_key = settings.mq_ping['key'],
 				body = json.dumps(definition.ping_mq_payload())
 			)
 

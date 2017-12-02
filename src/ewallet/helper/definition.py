@@ -23,6 +23,9 @@ PING_RESPONSE_CODES = [
 	OK, UNKNOWN_ERROR
 ]
 
+def date2str(date):
+	return datetime.strftime(date, '%Y-%m-%d %H:%M:%S')
+
 def transfer_response(status_code):
 	if status_code not in TRANSFER_RESPONSE_CODES:
 		raise ValueError('Invalid status code')
@@ -52,10 +55,25 @@ def ping_response(status_code):
 
 def ping_mq_payload(timestamp = None):
 	date = datetime.fromtimestamp(timestamp or time.time())
-	date_str = datetime.strftime(date, '%Y-%m-%d %H:%M:%S')
-
+	
 	return {
 		"action": "ping",
 		"npm": settings.NODE_ID,
-		"ts": date_str
+		"ts": date2str(date)
+	}
+
+def balance_inquiry_response(balance, timestamp = None, status_code=None):
+	date = datetime.fromtimestamp(timestamp or time.time())
+
+	if status_code:
+		if status_code not in BALANCE_INQUIRY_RESPONSE_CODES:
+			raise ValueError('Invalid status code')
+
+		balance = status_code
+
+	return {
+		"action": "get_saldo",
+		"type": "response",
+		"nilai_saldo": balance,
+		"ts": date2str(date)
 	}

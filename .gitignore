@@ -1,3 +1,4 @@
+/tmp
 /**/*.pyc
 /src/ewallet.db
 /src/exclude.txt
