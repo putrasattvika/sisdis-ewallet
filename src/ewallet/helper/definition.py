@@ -26,12 +26,6 @@ PING_RESPONSE_CODES = [
 def date2str(date):
 	return datetime.strftime(date, '%Y-%m-%d %H:%M:%S')
 
-def transfer_response(status_code):
-	if status_code not in TRANSFER_RESPONSE_CODES:
-		raise ValueError('Invalid status code')
-
-	return { "status_transfer": status_code }
-
 def ping_mq_payload(timestamp = None):
 	date = datetime.fromtimestamp(timestamp or time.time())
 	
@@ -67,5 +61,18 @@ def register_response(status_code, timestamp = None):
 		"action": "register",
 		"type": "response",
 		"status_register": status_code,
+		"ts": date2str(date)
+	}
+
+def transfer_response(status_code, timestamp = None):
+	date = datetime.fromtimestamp(timestamp or time.time())
+
+	if status_code not in TRANSFER_RESPONSE_CODES:
+		raise ValueError('Invalid status code')
+
+	return {
+		"action": "transfer",
+		"type": "response",
+		"status_transfer": status_code,
 		"ts": date2str(date)
 	}

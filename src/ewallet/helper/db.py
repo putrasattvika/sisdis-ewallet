@@ -114,24 +114,27 @@ def update_node_ping(npm, timestamp):
 	conn.commit()
 	conn.close()
 
-def get_live_nodes(time_limit_secs=10):
+def get_live_nodes(time_limit_secs=10, timestamp=None):
+	ts = timestamp or time.time()
+
 	conn = sqlite3.connect(__DBFILE)
 	c = conn.cursor()
 
 	query = '''
-		SELECT npm
+		SELECT npm, timestamp
 		FROM ewallet_nodes
 		WHERE timestamp >= ?;
 	'''
 
-	c.execute(query, (time.time() - time_limit_secs, ))
+	c.execute(query, (ts - time_limit_secs, ))
 	q_result = c.fetchall()
 	conn.close()
 
 	result = []
 	for qr in q_result:
 		result.append({
-			'npm': qr[0]
+			'npm': qr[0],
+			'last_ts': qr[1]
 		})
 
 	return result

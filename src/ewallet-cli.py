@@ -29,6 +29,7 @@ def get_args():
 	parser.add_argument("--mq_user", help="rabbitmq username, default is {}".format(__DEFAULT_RABBITMQ_USER), default=__DEFAULT_RABBITMQ_USER)
 	parser.add_argument("--mq_pass", help="rabbitmq password, default is {}".format(__DEFAULT_RABBITMQ_PASS), default=__DEFAULT_RABBITMQ_PASS)
 	parser.add_argument("--debug", "-d", action="store_true", help="debug mode, use local rabbitmq")
+	parser.add_argument("--raw", "-r", action="store_true", help="raw mode, no logical checking")
 
 	sp = parser.add_subparsers(dest='cmd')
 
@@ -39,11 +40,11 @@ def get_args():
 	register.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
 	register.add_argument('name', metavar='NAME', help="user name")
 
-	# ## python ewallet-cli.py transfer <node_id> <user_id> <amount>
-	# transfer = sp.add_parser('transfer')
-	# transfer.add_argument('ip', metavar='IP', help="ewallet node IP")
-	# transfer.add_argument('id', metavar='ID', help="user ID/NPM")
-	# transfer.add_argument('amount', metavar='amount', help="amount to transfer", type=int)
+	## python ewallet-cli.py transfer <node_id> <user_id> <amount>
+	transfer = sp.add_parser('transfer')
+	transfer.add_argument('node_id', metavar='NODE_ID', help="ewallet node ID")
+	transfer.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
+	transfer.add_argument('amount', metavar='amount', help="amount to transfer", type=int)
 
 	# Query
 	## python ewallet-cli.py get-saldo <node_id> <user_id>
@@ -79,11 +80,9 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 		connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
 
 	send_channel = connection.channel()
-	send_queue = send_channel.queue_declare()
-	send_channel.queue_bind(send_queue.method.queue, exchange, routing_key=send_key)
 
 	recv_channel = connection.channel()
-	recv_queue = recv_channel.queue_declare()
+	recv_queue = recv_channel.queue_declare(auto_delete=True)
 	recv_channel.queue_bind(recv_queue.method.queue, exchange, routing_key=recv_key)
 
 	# publish
@@ -113,7 +112,6 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 		else:
 			break
 
-	recv_channel.queue_delete()
 	send_channel.close()
 
 	recv_channel.queue_delete()
@@ -123,10 +121,10 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 
 	return json.loads(body)
 
-def handle(host, username, password, cmd, parameters):
+def handle(host, username, password, cmd, parameters, raw=False):
 	user = helper.db.get_user(parameters['user_id'])
 
-	if not user and cmd != 'get-total-saldo' and cmd != 'register':
+	if not raw and not user and cmd != 'get-total-saldo' and cmd != 'register':
 		print '[!] user_id ({}) is not present in this node.'.format(parameters['user_id'])
 		exit(1)
 
@@ -144,7 +142,7 @@ def handle(host, username, password, cmd, parameters):
 			})
 		)
 
-		if res['nilai_saldo'] == -1:
+		if not raw and res['nilai_saldo'] == -1:
 			rmq_publish_receive(
 				host, username, password, 'EX_REGISTER',
 				'REQ_{}'.format(parameters['node_id']),
@@ -172,23 +170,36 @@ def handle(host, username, password, cmd, parameters):
 				"ts": date2str(datetime.now())
 			})
 		)
-	# elif cmd == 'transfer':
-	# 	if user['balance'] < parameters['nilai']:
-	# 		print '[!] Not enough balance for user_id ({}) in this node [balance={}, amount={}].' \
-	# 			.format(parameters['user_id'], user['balance'], parameters['nilai'])
+	elif cmd == 'transfer':
+		if not raw and (user['balance'] < parameters['amount']):
+			print '[!] Not enough balance for user_id ({}) in this node [balance={}, amount={}].' \
+				.format(parameters['user_id'], user['balance'], parameters['amount'])
 
-	# 		exit(1)
+			exit(1)
 
-	# 	res = ewallet_post(host, cmd, parameters)
-	# 	if res['status_transfer'] == 1:
-	# 		helper.db.alter_balance(user['user_id'], delta=-parameters['nilai'])
+		res = rmq_publish_receive(
+			host, username, password, 'EX_TRANSFER',
+			'REQ_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(parameters['node_id']),
+			json.dumps({
+				"action": "transfer",
+				"user_id": parameters['user_id'],
+				"nilai": parameters['amount'],
+				"sender_id": MY_ID,
+				"type": "request",
+				"ts": date2str(datetime.now())
+			})
+		)
+
+		if not raw and res['status_transfer'] == 1:
+			helper.db.alter_balance(user['user_id'], delta=-parameters['amount'])
 	# else:
 	# 	res = ewallet_post(host, cmd, parameters)
 
 	return res
 
-def list_nodes():
-	return helper.db.get_live_nodes()
+def list_nodes(timestamp=None):
+	return helper.db.get_live_nodes(timestamp=timestamp)
 
 def main():
 	args = get_args()
@@ -202,10 +213,20 @@ def main():
 	helper.db.init_db(DB_FILE)
 
 	if args.cmd == 'list':
-		print json.dumps(list_nodes(), indent=2, sort_keys=True)
+		ts = time.time()
+
+		print '[+] Live nodes at timestamp={:.0f} - 10secs'.format(ts)
+		print json.dumps(list_nodes(timestamp=ts), indent=2, sort_keys=True)
 		return
 
-	print json.dumps(handle(args.mq_host, args.mq_user, args.mq_pass, args.cmd, args_dict), indent=2, sort_keys=True)
+	print json.dumps(
+		handle(
+			args.mq_host, args.mq_user, args.mq_pass,
+			args.cmd, args_dict, raw=args.raw
+		), 
+		indent=2,
+		sort_keys=True
+	)
 
 if __name__ == '__main__':
 	main()

@@ -43,20 +43,11 @@ class RegisterConsumer(BaseConsumer):
 
 			response = json.dumps(definition.register_response(status_code))
 
-			reply_queue = ch.queue_declare()
-			ch.queue_bind(
-				reply_queue.method.queue,
-				exchange,
-				routing_key=routing_key
-			)
-
 			logger.info('replying register to exchange={}, routing_key={}'.format(exchange, routing_key))
 			ch.basic_publish(
 				exchange = exchange,
 				routing_key = routing_key,
 				body = response
 			)
-
-			ch.queue_delete(queue=reply_queue.method.queue)
 		except Exception as e:
 			logger.info('error@consumer_callback, body=[{}], errmsg=[{}]'.format(body, e.message))

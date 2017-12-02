@@ -56,7 +56,7 @@ class ConnectionCreator(object):
 			conn = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
 
 		channel = conn.channel()
-		queue = channel.queue_declare()
+		queue = channel.queue_declare(auto_delete=True)
 		channel.queue_bind(queue.method.queue, self.exchange, routing_key=self.routing_key)
 
 		self.connections[identifier] = {
