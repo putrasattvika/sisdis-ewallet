@@ -31,8 +31,7 @@ class PingPublisher(object):
 
 	def run(self):
 		while self.is_running:
-			self.channel, self.queue = self.connection_creator.get_connection()
-			self.channel.queue_bind(self.queue.method.queue, settings.mq_ping['exchange'])
+			self.channel, self.queue = self.connection_creator.get_connection(self.__class__.__name__)
 
 			logger.info('publishing ping..')
 			self.channel.basic_publish(

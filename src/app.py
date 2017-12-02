@@ -4,6 +4,7 @@ import ewallet
 import logging
 import argparse
 
+from ewallet.helper import settings
 from ewallet.msgqueue import PingJob
 from ewallet.msgqueue import GetSaldoJob
 
@@ -58,7 +59,8 @@ def main():
 	})
 
 	ewallet.helper.settings.set('mq_get_saldo', {
-		'exchange': args.mq_get_saldo_ex
+		'exchange': args.mq_get_saldo_ex,
+		'key': 'REQ_{}'.format(settings.NODE_ID)
 	})
 
 	ping_job = PingJob(args.mq_host, args.mq_user, args.mq_pass)

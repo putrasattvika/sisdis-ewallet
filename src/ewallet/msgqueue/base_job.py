@@ -5,7 +5,6 @@ class BaseJob(object):
 		super(BaseJob, self).__init__()
 		
 		self.host = host
-		self.connection_creator = ConnectionCreator(host, username, password)
 		
 	def start(self):
 		pass
@@ -14,49 +13,40 @@ class BaseJob(object):
 		pass
 
 class ConnectionCreator(object):
-	def __init__(self, host, username, password):
+	def __init__(self, host, username, password, exchange, routing_key=''):
 		super(ConnectionCreator, self).__init__()
 
 		self.host = host
+		self.exchange = exchange
+		self.routing_key = routing_key
 
 		self.cred = None
 		if username and password:
 			self.cred = pika.credentials.PlainCredentials(username, password)
 
-		self.conn = None
-		self.channel, self.queue = (None, None)
-		self.channel, self.queue = self.get_connection()
+		self.connections = {}
 
 	def close(self):
-		if self.channel: 
-			self.channel.queue_delete()
-			self.channel.close()
-			self.conn.close()
+		for identifier in self.connections:
+			try:
+				queue_name = self.connections[identifier]['queue'].method.queue
+				self.connections[identifier]['channel'].queue_delete(queue=queue_name)
+				self.connections[identifier]['channel'].close()
+				self.connections[identifier]['connection'].close()
+			except:
+				pass
 
-	def get_connection(self):
-		try:
-			if self.channel and self.channel.is_open:
-				return self.channel, self.queue
+	def get_connection(self, identifier):
+		if identifier in self.connections:
+			channel = self.connections[identifier]['channel']
+			queue = self.connections[identifier]['queue']
 
-			if self.queue and self.queue.queue_declare(queue=self.queue.method.queue):
-				return self.channel, self.queue
-		except:
-			pass
-
-		if self.cred:
-			self.conn = pika.BlockingConnection(
-				pika.ConnectionParameters(host=self.host, credentials=self.cred)
-			)
-		else:
-			self.conn = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
-
-		self.channel = self.conn.channel()
-		self.queue = self.channel.queue_declare()
-
-		return self.channel, self.queue
-
-	def get_new_channel(self):
-		channel, queue = self.get_connection()
+			try:
+				if channel and channel.is_open:
+					if queue and queue.queue_declare(queue=queue.method.queue):
+						return channel, queue
+			except:
+				pass
 
 		if self.cred:
 			conn = pika.BlockingConnection(
@@ -65,4 +55,14 @@ class ConnectionCreator(object):
 		else:
 			conn = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
 
-		return conn.channel(), queue
+		channel = conn.channel()
+		queue = channel.queue_declare()
+		channel.queue_bind(queue.method.queue, self.exchange, routing_key=self.routing_key)
+
+		self.connections[identifier] = {
+			'connection': conn,
+			'channel': channel,
+			'queue': queue
+		}
+
+		return channel, queue

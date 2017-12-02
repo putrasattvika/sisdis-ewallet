@@ -10,11 +10,7 @@ logger = logging.getLogger(__name__)
 
 class GetSaldoConsumer(BaseConsumer):
 	def __init__(self, connection_creator):
-		super(GetSaldoConsumer, self).__init__(
-			connection_creator,
-			settings.mq_get_saldo['exchange'],
-			routing_key='REQ_{}'.format(settings.NODE_ID)
-		)
+		super(GetSaldoConsumer, self).__init__(connection_creator)
 
 	@staticmethod
 	def callback(ch, method, properties, body):

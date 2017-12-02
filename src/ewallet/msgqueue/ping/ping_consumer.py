@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class PingConsumer(BaseConsumer):
 	def __init__(self, connection_creator):
-		super(PingConsumer, self).__init__(connection_creator, settings.mq_ping['exchange'])
+		super(PingConsumer, self).__init__(connection_creator)
 
 	@staticmethod
 	def callback(ch, method, properties, body):
