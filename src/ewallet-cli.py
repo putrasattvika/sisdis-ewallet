@@ -14,20 +14,13 @@ __DEFAULT_RABBITMQ_USER = 'sisdis'
 __DEFAULT_RABBITMQ_PASS = 'sisdis'
 
 API_MAP= {
-	# 'ping': 'ping',
 	'register': 'register',
 	'transfer': 'transfer',
-	'get-saldo': 'getSaldo',
-	'get-total-saldo': 'getTotalSaldo'
+	'get-saldo': 'get_saldo',
+	'get-total-saldo': 'get_total_saldo'
 }
 
 DB_FILE = 'ewallet.db'
-
-DEFAULT_HEADERS = {
-	'Content-Type': 'application/json',
-	'Accept': 'application/json'
-}
-
 MY_ID = '1406527532'
 
 def get_args():
@@ -39,31 +32,26 @@ def get_args():
 
 	sp = parser.add_subparsers(dest='cmd')
 
-	# Utils
-	## python ewallet-cli.py ping <host>
-	# ping = sp.add_parser('ping')
-	# ping.add_argument('ip', metavar='IP', help="ewallet node IP")
+	# Banking
+	## python ewallet-cli.py register <node_id> <user_id> <name>
+	register = sp.add_parser('register')
+	register.add_argument('node_id', metavar='NODE_ID', help="ewallet node ID")
+	register.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
+	register.add_argument('name', metavar='NAME', help="user name")
 
-	# # Banking
-	# ## python ewallet-cli.py register <host> <id> <name>
-	# register = sp.add_parser('register')
-	# register.add_argument('ip', metavar='IP', help="ewallet node IP")
-	# register.add_argument('id', metavar='ID', help="user ID/NPM")
-	# register.add_argument('name', metavar='NAME', help="user name")
-
-	# ## python ewallet-cli.py transfer <host> <id> <amount>
+	# ## python ewallet-cli.py transfer <node_id> <user_id> <amount>
 	# transfer = sp.add_parser('transfer')
 	# transfer.add_argument('ip', metavar='IP', help="ewallet node IP")
 	# transfer.add_argument('id', metavar='ID', help="user ID/NPM")
 	# transfer.add_argument('amount', metavar='amount', help="amount to transfer", type=int)
 
 	# Query
-	## python ewallet-cli.py get-saldo <host> <id>
+	## python ewallet-cli.py get-saldo <node_id> <user_id>
 	get_saldo = sp.add_parser('get-saldo')
 	get_saldo.add_argument('node_id', metavar='NODE_ID', help="ewallet node ID")
 	get_saldo.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
 
-	# ## python ewallet-cli.py get-total-saldo <host> <id>
+	# ## python ewallet-cli.py get-total-saldo <node_id> <user_id>
 	# get_total_saldo = sp.add_parser('get-total-saldo')
 	# get_total_saldo.add_argument('ip', metavar='IP', help="ewallet node IP")
 	# get_total_saldo.add_argument('id', metavar='ID', help="user ID/NPM")
@@ -133,15 +121,12 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 
 	connection.close()
 
-	return body
+	return json.loads(body)
 
 def handle(host, username, password, cmd, parameters):
-	# if cmd == 'get-total-saldo' or cmd == 'register':
-	# 	return ewallet_post(host, cmd, parameters)
-
 	user = helper.db.get_user(parameters['user_id'])
 
-	if not user:
+	if not user and cmd != 'get-total-saldo' and cmd != 'register':
 		print '[!] user_id ({}) is not present in this node.'.format(parameters['user_id'])
 		exit(1)
 
@@ -159,8 +144,34 @@ def handle(host, username, password, cmd, parameters):
 			})
 		)
 
-		# if res['nilai_saldo'] == -1:
-		# 	ewallet_post(host, 'register', {'user_id': user['user_id'], 'nama': user['name']})
+		if res['nilai_saldo'] == -1:
+			rmq_publish_receive(
+				host, username, password, 'EX_REGISTER',
+				'REQ_{}'.format(parameters['node_id']),
+				'RESP_{}'.format(parameters['node_id']),
+				json.dumps({
+					"action": "register",
+					"user_id": user['user_id'],
+					"nama": user['name'],
+					"sender_id": MY_ID,
+					"type": "request",
+					"ts": date2str(datetime.now())
+				})
+			)
+	elif cmd == 'register':
+		res = rmq_publish_receive(
+			host, username, password, 'EX_REGISTER',
+			'REQ_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(parameters['node_id']),
+			json.dumps({
+				"action": "register",
+				"user_id": parameters['user_id'],
+				"nama": parameters['name'],
+				"sender_id": MY_ID,
+				"type": "request",
+				"ts": date2str(datetime.now())
+			})
+		)
 	# elif cmd == 'transfer':
 	# 	if user['balance'] < parameters['nilai']:
 	# 		print '[!] Not enough balance for user_id ({}) in this node [balance={}, amount={}].' \
@@ -174,7 +185,7 @@ def handle(host, username, password, cmd, parameters):
 	# else:
 	# 	res = ewallet_post(host, cmd, parameters)
 
-	return json.loads(res)
+	return res
 
 def list_nodes():
 	return helper.db.get_live_nodes()

@@ -43,8 +43,8 @@ class ConnectionCreator(object):
 
 			try:
 				if channel and channel.is_open:
-					if queue and queue.queue_declare(queue=queue.method.queue):
-						return channel, queue
+					# if queue and queue.queue_declare(queue=queue.method.queue):
+					return channel, queue
 			except:
 				pass
 
