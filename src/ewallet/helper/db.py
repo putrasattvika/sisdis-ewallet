@@ -138,3 +138,27 @@ def get_live_nodes(time_limit_secs=10, timestamp=None):
 		})
 
 	return result
+
+def get_quorum(time_limit_secs=10, timestamp=None):
+	ts = timestamp or time.time()
+
+	conn = sqlite3.connect(__DBFILE)
+	c = conn.cursor()
+
+	query = '''
+		SELECT count(npm)
+		FROM ewallet_nodes;
+	'''
+
+	c.execute(query)
+	q_result = c.fetchone()
+	conn.close()
+
+	total_nodes = int(q_result[0])
+	healthy_nodes = get_live_nodes(time_limit_secs=time_limit_secs, timestamp=timestamp)
+
+	return {
+		'healthy_nodes': healthy_nodes,
+		'num_healthy': len(healthy_nodes),
+		'num_all': total_nodes
+	}

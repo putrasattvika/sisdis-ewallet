@@ -52,10 +52,10 @@ def get_args():
 	get_saldo.add_argument('node_id', metavar='NODE_ID', help="ewallet node ID")
 	get_saldo.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
 
-	# ## python ewallet-cli.py get-total-saldo <node_id> <user_id>
-	# get_total_saldo = sp.add_parser('get-total-saldo')
-	# get_total_saldo.add_argument('ip', metavar='IP', help="ewallet node IP")
-	# get_total_saldo.add_argument('id', metavar='ID', help="user ID/NPM")
+	## python ewallet-cli.py get-total-saldo <node_id> <user_id>
+	get_total_saldo = sp.add_parser('get-total-saldo')
+	get_total_saldo.add_argument('node_id', metavar='NODE_ID', help="ewallet node ID")
+	get_total_saldo.add_argument('user_id', metavar='USER_ID', help="user ID/NPM")
 
 	# Misc
 	## python ewallet-cli.py list
@@ -156,6 +156,19 @@ def handle(host, username, password, cmd, parameters, raw=False):
 					"ts": date2str(datetime.now())
 				})
 			)
+	elif cmd == 'get-total-saldo':
+		res = rmq_publish_receive(
+			host, username, password, 'EX_GET_TOTAL_SALDO',
+			'REQ_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(parameters['node_id']),
+			json.dumps({
+				"action": "get_total_saldo",
+				"user_id": parameters['user_id'],
+				"sender_id": MY_ID,
+				"type": "request",
+				"ts": date2str(datetime.now())
+			})
+		)
 	elif cmd == 'register':
 		res = rmq_publish_receive(
 			host, username, password, 'EX_REGISTER',

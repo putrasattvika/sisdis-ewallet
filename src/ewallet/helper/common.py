@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 
 NODE_LIST_URL = 'http://152.118.31.2/list.php'
 DEBUG_NODE_LIST_URL = 'http://172.21.0.1:5000/'
@@ -26,3 +27,6 @@ def get_node_list(debug=False):
 			filtered_node_list.append(node)
 
 	return filtered_node_list
+
+def date2str(date):
+	return datetime.strftime(date, '%Y-%m-%d %H:%M:%S')

@@ -51,6 +51,22 @@ def balance_inquiry_response(balance, timestamp = None, status_code=None):
 		"ts": date2str(date)
 	}
 
+def total_balance_inquiry_response(balance, timestamp = None, status_code=None):
+	date = datetime.fromtimestamp(timestamp or time.time())
+
+	if status_code:
+		if status_code not in BALANCE_INQUIRY_RESPONSE_CODES:
+			raise ValueError('Invalid status code')
+
+		balance = status_code
+
+	return {
+		"action": "get_total_saldo",
+		"type": "response",
+		"nilai_saldo": balance,
+		"ts": date2str(date)
+	}
+
 def register_response(status_code, timestamp = None):
 	date = datetime.fromtimestamp(timestamp or time.time())
 
