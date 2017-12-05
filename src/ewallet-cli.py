@@ -12,6 +12,7 @@ from datetime import datetime
 __DEFAULT_RABBITMQ_HOST = '172.17.0.3'
 __DEFAULT_RABBITMQ_USER = 'sisdis'
 __DEFAULT_RABBITMQ_PASS = 'sisdis'
+__DEFAULT_ID = '1406527532'
 
 API_MAP= {
 	'register': 'register',
@@ -22,14 +23,15 @@ API_MAP= {
 
 DB_USER = 'ewallet'
 DB_NAME = 'ewallet'
-MY_ID = '1406527532'
 
 def get_args():
 	parser = argparse.ArgumentParser()
+	parser.add_argument("--id", '-i', help="node ID, default is {}".format(__DEFAULT_ID), default=__DEFAULT_ID)
 	parser.add_argument("--mq_host", help="rabbitmq host, default is {}".format(__DEFAULT_RABBITMQ_HOST), default=__DEFAULT_RABBITMQ_HOST)
 	parser.add_argument("--mq_user", help="rabbitmq username, default is {}".format(__DEFAULT_RABBITMQ_USER), default=__DEFAULT_RABBITMQ_USER)
 	parser.add_argument("--mq_pass", help="rabbitmq password, default is {}".format(__DEFAULT_RABBITMQ_PASS), default=__DEFAULT_RABBITMQ_PASS)
 	parser.add_argument("--debug", "-d", action="store_true", help="debug mode, use local rabbitmq")
+	parser.add_argument("--docker", action="store_true", help="docker mode, use host rabbitmq")
 	parser.add_argument("--raw", "-r", action="store_true", help="raw mode, no logical checking")
 
 	sp = parser.add_subparsers(dest='cmd')
@@ -122,7 +124,7 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 
 	return json.loads(body)
 
-def handle(host, username, password, cmd, parameters, raw=False):
+def handle(my_id, host, username, password, cmd, parameters, raw=False):
 	user = helper.db.EWalletDB().get_user(parameters['user_id'])
 
 	if not raw and not user and cmd != 'get-total-saldo' and cmd != 'register':
@@ -133,11 +135,11 @@ def handle(host, username, password, cmd, parameters, raw=False):
 		res = rmq_publish_receive(
 			host, username, password, 'EX_GET_SALDO',
 			'REQ_{}'.format(parameters['node_id']),
-			'RESP_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(my_id),
 			json.dumps({
 				"action": "get_saldo",
 				"user_id": parameters['user_id'],
-				"sender_id": MY_ID,
+				"sender_id": my_id,
 				"type": "request",
 				"ts": date2str(datetime.now())
 			})
@@ -147,12 +149,12 @@ def handle(host, username, password, cmd, parameters, raw=False):
 			rmq_publish_receive(
 				host, username, password, 'EX_REGISTER',
 				'REQ_{}'.format(parameters['node_id']),
-				'RESP_{}'.format(parameters['node_id']),
+				'RESP_{}'.format(my_id),
 				json.dumps({
 					"action": "register",
 					"user_id": user['user_id'],
 					"nama": user['name'],
-					"sender_id": MY_ID,
+					"sender_id": my_id,
 					"type": "request",
 					"ts": date2str(datetime.now())
 				})
@@ -161,11 +163,11 @@ def handle(host, username, password, cmd, parameters, raw=False):
 		res = rmq_publish_receive(
 			host, username, password, 'EX_GET_TOTAL_SALDO',
 			'REQ_{}'.format(parameters['node_id']),
-			'RESP_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(my_id),
 			json.dumps({
 				"action": "get_total_saldo",
 				"user_id": parameters['user_id'],
-				"sender_id": MY_ID,
+				"sender_id": my_id,
 				"type": "request",
 				"ts": date2str(datetime.now())
 			})
@@ -174,12 +176,12 @@ def handle(host, username, password, cmd, parameters, raw=False):
 		res = rmq_publish_receive(
 			host, username, password, 'EX_REGISTER',
 			'REQ_{}'.format(parameters['node_id']),
-			'RESP_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(my_id),
 			json.dumps({
 				"action": "register",
 				"user_id": parameters['user_id'],
 				"nama": parameters['name'],
-				"sender_id": MY_ID,
+				"sender_id": my_id,
 				"type": "request",
 				"ts": date2str(datetime.now())
 			})
@@ -194,12 +196,12 @@ def handle(host, username, password, cmd, parameters, raw=False):
 		res = rmq_publish_receive(
 			host, username, password, 'EX_TRANSFER',
 			'REQ_{}'.format(parameters['node_id']),
-			'RESP_{}'.format(parameters['node_id']),
+			'RESP_{}'.format(my_id),
 			json.dumps({
 				"action": "transfer",
 				"user_id": parameters['user_id'],
 				"nilai": parameters['amount'],
-				"sender_id": MY_ID,
+				"sender_id": my_id,
 				"type": "request",
 				"ts": date2str(datetime.now())
 			})
@@ -224,6 +226,11 @@ def main():
 		args.mq_user = None
 		args.mq_pass = None
 
+	if args.docker:
+		args.mq_host = '172.21.0.1'
+		args.mq_user = 'docker'
+		args.mq_pass = 'docker'
+
 	helper.db.init(DB_USER, DB_NAME)
 
 	if args.cmd == 'list':
@@ -235,7 +242,7 @@ def main():
 
 	print json.dumps(
 		handle(
-			args.mq_host, args.mq_user, args.mq_pass,
+			args.id, args.mq_host, args.mq_user, args.mq_pass,
 			args.cmd, args_dict, raw=args.raw
 		), 
 		indent=2,

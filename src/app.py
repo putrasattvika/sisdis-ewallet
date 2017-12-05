@@ -35,6 +35,7 @@ def get_args():
 	parser = argparse.ArgumentParser(add_help=False)
 	parser.add_argument("--id", "-i", help="node ID, default is {}".format(__DEFAULT_ID), default=__DEFAULT_ID)
 	parser.add_argument("--debug", "-d", action="store_true", help="debug mode, use local rabbitmq")
+	parser.add_argument("--docker", action="store_true", help="docker mode")
 	parser.add_argument("--verbose", action="store_true", help="verbose mode")
 	parser.add_argument("--help", action='help', help='print this help message')
 
@@ -69,6 +70,11 @@ def main():
 		args.mq_host = '127.0.1.1'
 		args.mq_user = None
 		args.mq_pass = None
+
+	if args.docker:
+		args.mq_host = '172.21.0.1'
+		args.mq_user = 'docker'
+		args.mq_pass = 'docker'
 
 	ewallet.helper.settings.set('mq_ping', {
 		'exchange': args.mq_ping_ex,
