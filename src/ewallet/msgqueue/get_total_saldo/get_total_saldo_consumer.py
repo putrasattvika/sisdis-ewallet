@@ -56,7 +56,7 @@ class GetTotalSaldoConsumer(BaseConsumer):
 								"type": "request",
 								"ts": common.date2str(datetime.now())
 							}),
-							recv_key='RESP_{}'.format(node['npm'])
+							recv_key='RESP_{}'.format(settings.NODE_ID)
 						)
 						recv_conns.append((conn, channel, queue, node['npm']))
 
@@ -76,7 +76,7 @@ class GetTotalSaldoConsumer(BaseConsumer):
 							res = connection_creator.rmq_publish_consume(
 								exchange,
 								'REQ_{}'.format(node['npm']),
-								'RESP_{}'.format(node['npm']),
+								'RESP_{}'.format(settings.NODE_ID),
 								json.dumps({
 									"action": "get_total_saldo",
 									"user_id": user_id,
@@ -87,6 +87,7 @@ class GetTotalSaldoConsumer(BaseConsumer):
 							)
 
 							balance = res['nilai_saldo']
+							get_total_saldo_user_found = True
 
 					if not get_total_saldo_user_found:
 						status_code = codes.USER_DOES_NOT_EXISTS_ERROR
