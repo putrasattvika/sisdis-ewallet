@@ -1,6 +1,3 @@
-from base_job import BaseJob
-from base_job import ConnectionCreator
-
 from ping.ping import PingJob
 from get_saldo.get_saldo import GetSaldoJob
 from get_total_saldo.get_total_saldo import GetTotalSaldoJob
