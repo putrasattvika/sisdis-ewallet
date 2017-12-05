@@ -80,13 +80,22 @@ class GetTotalSaldoConsumer(BaseConsumer):
 					)
 					recv_conns.append((conn, channel, queue, node['npm']))
 
-				for conn, channel, queue, npm in recv_conns:
-					res = connection_creator.rmq_consume(conn, channel, queue)
+				# first one is enough, same routing key
+				conn, channel, queue, _ = recv_conns[0]
+				for _, _, _, npm in recv_conns:
+					res = connection_creator.rmq_consume(conn, channel, queue, left_open=True)
 
 					if 'nilai_saldo' in res:
 						if res['nilai_saldo'] >= 0:
 							balance += res['nilai_saldo']
 							get_total_saldo_user_found = True
+					else:
+						logger.info('invalid get-saldo data: {}'.format(res))
+
+				for conn, channel, _, _ in recv_conns:
+					channel.queue_delete()
+					channel.close()
+					conn.close()
 
 				if not get_total_saldo_user_found:
 					status_code = codes.USER_DOES_NOT_EXISTS_ERROR

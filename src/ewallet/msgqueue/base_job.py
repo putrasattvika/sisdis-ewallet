@@ -98,7 +98,7 @@ class ConnectionCreator(object):
 		else:
 			return None
 
-	def rmq_consume(self, connection, recv_channel, recv_queue):
+	def rmq_consume(self, connection, recv_channel, recv_queue, ack=False, left_open=False):
 		# receive
 		cnt = 0
 		while True:
@@ -108,7 +108,7 @@ class ConnectionCreator(object):
 
 			method, properties, body = recv_channel.basic_get(
 				queue=recv_queue.method.queue,
-				no_ack=True
+				no_ack=ack
 			)
 
 			if (method, properties, body) == (None, None, None):
@@ -117,9 +117,10 @@ class ConnectionCreator(object):
 			else:
 				break
 
-		recv_channel.queue_delete()
-		recv_channel.close()
-		connection.close()
+		if not left_open:
+			recv_channel.queue_delete()
+			recv_channel.close()
+			connection.close()
 
 		return json.loads(body)
 
