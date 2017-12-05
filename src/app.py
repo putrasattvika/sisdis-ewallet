@@ -101,17 +101,15 @@ def main():
 		'key': 'REQ_{}'.format(settings.NODE_ID)
 	})
 
-	ping_job = PingJob(args.mq_host, args.mq_user, args.mq_pass)
-	get_saldo_job = GetSaldoJob(args.mq_host, args.mq_user, args.mq_pass)
-	get_total_saldo_job = GetTotalSaldoJob(args.mq_host, args.mq_user, args.mq_pass)
-	register_job = RegisterJob(args.mq_host, args.mq_user, args.mq_pass)
-	transfer_job = TransferJob(args.mq_host, args.mq_user, args.mq_pass)
+	bg_jobs = []
+	bg_jobs.append( PingJob(args.mq_host, args.mq_user, args.mq_pass) )
+	bg_jobs.append( GetSaldoJob(args.mq_host, args.mq_user, args.mq_pass) )
+	bg_jobs.append( GetTotalSaldoJob(args.mq_host, args.mq_user, args.mq_pass) )
+	bg_jobs.append( RegisterJob(args.mq_host, args.mq_user, args.mq_pass) )
+	bg_jobs.append( TransferJob(args.mq_host, args.mq_user, args.mq_pass) )
 
-	ping_job.start()
-	get_saldo_job.start()
-	get_total_saldo_job.start()
-	register_job.start()
-	transfer_job.start()
+	for job in bg_jobs:
+		job.start()
 
 	while True:
 		try:
@@ -124,11 +122,8 @@ def main():
 			break
 
 	logger.info('stopping background jobs')
-	ping_job.stop()
-	get_saldo_job.stop()
-	get_total_saldo_job.stop()
-	register_job.stop()
-	transfer_job.stop()
+	for job in bg_jobs:
+		job.stop()
 
 if __name__ == '__main__':
 	main()

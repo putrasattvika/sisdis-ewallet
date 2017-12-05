@@ -1,5 +1,6 @@
 import time
 import settings
+import common
 
 from datetime import datetime
 from codes import *
@@ -23,16 +24,13 @@ PING_RESPONSE_CODES = [
 	OK, UNKNOWN_ERROR
 ]
 
-def date2str(date):
-	return datetime.strftime(date, '%Y-%m-%d %H:%M:%S')
-
 def ping_mq_payload(timestamp = None):
 	date = datetime.fromtimestamp(timestamp or time.time())
 	
 	return {
 		"action": "ping",
 		"npm": settings.NODE_ID,
-		"ts": date2str(date)
+		"ts": common.date2str(date)
 	}
 
 def balance_inquiry_response(balance, timestamp = None, status_code=None):
@@ -48,7 +46,7 @@ def balance_inquiry_response(balance, timestamp = None, status_code=None):
 		"action": "get_saldo",
 		"type": "response",
 		"nilai_saldo": balance,
-		"ts": date2str(date)
+		"ts": common.date2str(date)
 	}
 
 def total_balance_inquiry_response(balance, timestamp = None, status_code=None):
@@ -64,7 +62,7 @@ def total_balance_inquiry_response(balance, timestamp = None, status_code=None):
 		"action": "get_total_saldo",
 		"type": "response",
 		"nilai_saldo": balance,
-		"ts": date2str(date)
+		"ts": common.date2str(date)
 	}
 
 def register_response(status_code, timestamp = None):
@@ -77,7 +75,7 @@ def register_response(status_code, timestamp = None):
 		"action": "register",
 		"type": "response",
 		"status_register": status_code,
-		"ts": date2str(date)
+		"ts": common.date2str(date)
 	}
 
 def transfer_response(status_code, timestamp = None):
@@ -90,5 +88,5 @@ def transfer_response(status_code, timestamp = None):
 		"action": "transfer",
 		"type": "response",
 		"status_transfer": status_code,
-		"ts": date2str(date)
+		"ts": common.date2str(date)
 	}
