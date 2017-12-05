@@ -64,54 +64,32 @@ class GetTotalSaldoConsumer(BaseConsumer):
 			get_total_saldo_user_found = False
 
 			try:
-				if user_id == settings.NODE_ID:
-					recv_conns = []
-					for node in quorum['healthy_nodes']:
-						conn, channel, queue = connection_creator.rmq_publish(
-							get_saldo_exchange,
-							'REQ_{}'.format(node['npm']),
-							json.dumps({
-								"action": "get_saldo",
-								"user_id": user_id,
-								"sender_id": settings.NODE_ID,
-								"type": "request",
-								"ts": common.date2str(datetime.now())
-							}),
-							recv_key='RESP_{}'.format(settings.NODE_ID)
-						)
-						recv_conns.append((conn, channel, queue, node['npm']))
+				recv_conns = []
+				for node in quorum['healthy_nodes']:
+					conn, channel, queue = connection_creator.rmq_publish(
+						get_saldo_exchange,
+						'REQ_{}'.format(node['npm']),
+						json.dumps({
+							"action": "get_saldo",
+							"user_id": user_id,
+							"sender_id": settings.NODE_ID,
+							"type": "request",
+							"ts": common.date2str(datetime.now())
+						}),
+						recv_key='RESP_{}'.format(settings.NODE_ID)
+					)
+					recv_conns.append((conn, channel, queue, node['npm']))
 
-					for conn, channel, queue, npm in recv_conns:
-						res = connection_creator.rmq_consume(conn, channel, queue)
+				for conn, channel, queue, npm in recv_conns:
+					res = connection_creator.rmq_consume(conn, channel, queue)
 
-						if 'nilai_saldo' in res:
-							if res['nilai_saldo'] >= 0:
-								balance += res['nilai_saldo']
-						else:
-							status_code = codes.NODE_UNREACHABLE_ERROR
-							logger.info('Node {} returned invalid body: {}'.format(npm, res))
-							break
-				else:
-					for node in quorum['healthy_nodes']:
-						if node['npm'] == user_id:
-							res = connection_creator.rmq_publish_consume(
-								exchange,
-								'REQ_{}'.format(node['npm']),
-								'RESP_{}'.format(settings.NODE_ID),
-								json.dumps({
-									"action": "get_total_saldo",
-									"user_id": user_id,
-									"sender_id": settings.NODE_ID,
-									"type": "request",
-									"ts": common.date2str(datetime.now())
-								})
-							)
-
-							balance = res['nilai_saldo']
+					if 'nilai_saldo' in res:
+						if res['nilai_saldo'] >= 0:
+							balance += res['nilai_saldo']
 							get_total_saldo_user_found = True
 
-					if not get_total_saldo_user_found:
-						status_code = codes.USER_DOES_NOT_EXISTS_ERROR
+				if not get_total_saldo_user_found:
+					status_code = codes.USER_DOES_NOT_EXISTS_ERROR
 			except Exception as e:
 				status_code = codes.UNKNOWN_ERROR
 				logger.info('Unknown error: %s', e.message)
