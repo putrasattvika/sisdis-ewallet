@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class GetTotalSaldoConsumer(BaseConsumer):
 	CALLBACK_CONN_CREATOR = None
+	MINIMAL_QUORUM = 1.0
 
 	def __init__(self, connection_creator):
 		super(GetTotalSaldoConsumer, self).__init__(connection_creator)
@@ -20,26 +21,46 @@ class GetTotalSaldoConsumer(BaseConsumer):
 		GetTotalSaldoConsumer.CALLBACK_CONN_CREATOR = connection_creator
 
 	@staticmethod
-	def callback(ch, method, properties, body):
+	def callback_wrapper(ch, method, properties, body):
 		quorum = db.EWalletDB().get_quorum()
-		GetTotalSaldoConsumer._callback(ch, method, properties, body, quorum=quorum)
+		quorum_fulfilled = True
+
+		if GetTotalSaldoConsumer.MINIMAL_QUORUM:
+			healthy_ratio = float(quorum['num_healthy'])/float(quorum['num_all'])
+			if healthy_ratio < GetTotalSaldoConsumer.MINIMAL_QUORUM:
+				quorum_fulfilled = False
+
+		GetTotalSaldoConsumer.callback(ch, method, properties, body, quorum=quorum, quorum_fulfilled=quorum_fulfilled)
 
 	@staticmethod
-	def _callback(ch, method, properties, body, quorum=None):
+	def callback(ch, method, properties, body, quorum=None, quorum_fulfilled=False):
 		try:
 			logger.info('received get-total-saldo body=[{}]'.format(body))
 
 			j = json.loads(body)
-
-			connection_creator = GetTotalSaldoConsumer.CALLBACK_CONN_CREATOR
-
 			exchange = settings.mq_get_total_saldo['exchange']
-			get_saldo_exchange = settings.mq_get_saldo['exchange']
 			routing_key = 'RESP_{}'.format(j['sender_id'])
 
-			user_id = j['user_id']
 			balance = 0
 			status_code = None
+
+			if not quorum_fulfilled:
+				status_code = codes.QUORUM_NOT_MET
+				response = json.dumps(definition.total_balance_inquiry_response(balance, status_code=status_code))
+
+				logger.info('replying quorum unfulfilled to exchange={}, routing_key={}'.format(exchange, routing_key))
+				ch.basic_publish(
+					exchange = exchange,
+					routing_key = routing_key,
+					body = response
+				)
+
+				return
+
+			connection_creator = GetTotalSaldoConsumer.CALLBACK_CONN_CREATOR
+			get_saldo_exchange = settings.mq_get_saldo['exchange']
+
+			user_id = j['user_id']
 			get_total_saldo_user_found = False
 
 			try:

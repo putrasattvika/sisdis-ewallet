@@ -13,7 +13,11 @@ class PingConsumer(BaseConsumer):
 		super(PingConsumer, self).__init__(connection_creator)
 
 	@staticmethod
-	def callback(ch, method, properties, body):
+	def callback_wrapper(ch, method, properties, body):
+		PingConsumer.callback(ch, method, properties, body, quorum=None, quorum_fulfilled=True)
+
+	@staticmethod
+	def callback(ch, method, properties, body, quorum=None, quorum_fulfilled=False):
 		try:
 			j = json.loads(body)
 			dt = datetime.strptime(j['ts'], '%Y-%m-%d %H:%M:%S')

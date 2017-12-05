@@ -15,5 +15,5 @@ reg_cmd="python2 ewallet-cli.py -r --docker --id $self_id register $self_id $sel
 trf_cmd="python2 ewallet-cli.py -r --docker --id $self_id transfer $self_id $self_id 1000000"
 
 # Start
-nohup bash -c "sleep 5 && $reg_cmd && sleep 1 && $trf_cmd" &
+nohup bash -c "sleep 15 && $reg_cmd && sleep 1 && $trf_cmd" &
 python2 app.py --id $self_id --docker

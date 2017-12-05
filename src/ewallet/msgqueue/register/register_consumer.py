@@ -11,20 +11,46 @@ from ewallet.msgqueue.base_consumer import BaseConsumer
 logger = logging.getLogger(__name__)
 
 class RegisterConsumer(BaseConsumer):
+	MINIMAL_QUORUM = 0.5
+
 	def __init__(self, connection_creator):
 		super(RegisterConsumer, self).__init__(connection_creator)
 
 	@staticmethod
-	def callback(ch, method, properties, body):
+	def callback_wrapper(ch, method, properties, body):
+		quorum = db.EWalletDB().get_quorum()
+		quorum_fulfilled = True
+
+		if RegisterConsumer.MINIMAL_QUORUM:
+			healthy_ratio = float(quorum['num_healthy'])/float(quorum['num_all'])
+			if healthy_ratio < RegisterConsumer.MINIMAL_QUORUM:
+				quorum_fulfilled = False
+
+		RegisterConsumer.callback(ch, method, properties, body, quorum=quorum, quorum_fulfilled=quorum_fulfilled)
+
+	@staticmethod
+	def callback(ch, method, properties, body, quorum=None, quorum_fulfilled=False):
 		try:
 			logger.info('received register body=[{}]'.format(body))
 
 			j = json.loads(body)
-
 			exchange = settings.mq_register['exchange']
 			routing_key = 'RESP_{}'.format(j['sender_id'])
 
 			status_code = codes.UNKNOWN_ERROR
+
+			if not quorum_fulfilled:
+				status_code = codes.QUORUM_NOT_MET
+				response = response = json.dumps(definition.register_response(status_code))
+
+				logger.info('replying quorum unfulfilled to exchange={}, routing_key={}'.format(exchange, routing_key))
+				ch.basic_publish(
+					exchange = exchange,
+					routing_key = routing_key,
+					body = response
+				)
+
+				return
 
 			try:
 				if not db.EWalletDB().create_user(j['user_id'], j['nama']):

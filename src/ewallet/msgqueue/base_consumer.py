@@ -34,7 +34,7 @@ class BaseConsumer(object):
 			try:
 				self.logger.info('Consuming to {}'.format(self.queue.method.queue))
 
-				self.channel.basic_consume(self.__class__.callback, queue=self.queue.method.queue, no_ack=True)
+				self.channel.basic_consume(self.__class__.callback_wrapper, queue=self.queue.method.queue, no_ack=True)
 				self.channel.start_consuming()
 			except Exception as e:
 				self.logger.info('error@consumer_run, errmsg=[{}]'.format(e.message))
