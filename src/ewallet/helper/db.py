@@ -86,7 +86,7 @@ class EWalletDB(object):
 		if not balance and not delta:
 			raise ValueError('Balance and delta are unspecified')
 
-		user = get_user(user_id)
+		user = self.get_user(user_id)
 
 		if not user:
 			raise DBUserNotFoundError('User {} not found'.format(user_id))
