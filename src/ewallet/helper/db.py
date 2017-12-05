@@ -1,164 +1,165 @@
 import time
-import sqlite3
+import psycopg2
 
 from errors import *
+from contextlib import contextmanager
 
-def init_db(dbfile):
-	globals()['__DBFILE'] = dbfile
+class EWalletDB(object):
+	__instance = None
 
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+	def __new__(cls):
+		if cls.__instance == None:
+			cls.__instance = object.__new__(cls)
+		return cls.__instance
 
-	c.execute('''
-		CREATE TABLE IF NOT EXISTS ewallet (
-			user_id		text,
-			name		text,
-			balance		text,
-			PRIMARY KEY (user_id)
-		)
-	''')
+	def __init__(self):
+		super(EWalletDB, self).__init__()
 
-	c.execute('''
-		CREATE TABLE IF NOT EXISTS ewallet_nodes (
-			npm			text,
-			timestamp	integer,
-			PRIMARY KEY (npm)
-		)
-	''')	
+	def set(self, user, dbname):
+		self.user = user
+		self.dbname = dbname
+		self.init_db()
 
-	conn.commit()
-	conn.close()
+	@contextmanager
+	def db_cursor(self, commit=True):
+		conn = psycopg2.connect("dbname={} user={}".format(self.dbname, self.user))
 
-def get_user(user_id):
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+		yield conn.cursor()
 
-	query = '''
-		SELECT user_id, name, balance
-		FROM ewallet
-		WHERE user_id=?;
-	'''
+		if commit: conn.commit()
+		conn.close()
 
-	c.execute(query, (user_id, ))
-	result = c.fetchone()
-	conn.close()
+	def init_db(self):
+		with self.db_cursor() as c:
+			c.execute('''
+				CREATE TABLE IF NOT EXISTS account (
+					user_id		varchar,
+					name		varchar,
+					balance		varchar,
+					PRIMARY KEY (user_id)
+				)
+			''')
 
-	if not result:
-		return None
+			c.execute('''
+				CREATE TABLE IF NOT EXISTS nodes (
+					npm			varchar,
+					timestamp	int,
+					PRIMARY KEY (npm)
+				)
+			''')
 
-	return {
-		'user_id': result[0],
-		'name': result[1],
-		'balance': int(result[2])
-	}
+	def get_user(self, user_id):
+		with self.db_cursor(commit=False) as c:
+			query = '''
+				SELECT user_id, name, balance
+				FROM account
+				WHERE user_id=%s;
+			'''
 
-def create_user(user_id, name, balance=0):
-	if get_user(user_id):
-		raise DBUserAlreadyExistsError('User {} already exists'.format(user_id))
+			c.execute(query, (user_id, ))
+			result = c.fetchone()
 
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+		if not result:
+			return None
 
-	query = '''
-		INSERT INTO ewallet (user_id, name, balance) 
-		VALUES ( ?, ?, ? );
-	'''
+		return {
+			'user_id': result[0],
+			'name': result[1],
+			'balance': int(result[2])
+		}
+	
+	def create_user(self, user_id, name, balance=0):
+		if self.get_user(user_id):
+			raise DBUserAlreadyExistsError('User {} already exists'.format(user_id))
 
-	c.execute(query, (user_id, name, str(balance)))
+		with self.db_cursor() as c:
+			query = '''
+				INSERT INTO account (user_id, name, balance) 
+				VALUES ( %s, %s, %s );
+			'''
 
-	conn.commit()
-	conn.close()
+			c.execute(query, (user_id, name, str(balance)))
 
-	return get_user(user_id)
+		return self.get_user(user_id)
 
-def alter_balance(user_id, balance=None, delta=None):
-	if not balance and not delta:
-		raise ValueError('Balance and delta are unspecified')
+	def alter_balance(self, user_id, balance=None, delta=None):
+		if not balance and not delta:
+			raise ValueError('Balance and delta are unspecified')
 
-	user = get_user(user_id)
+		user = get_user(user_id)
 
-	if not user:
-		raise DBUserNotFoundError('User {} not found'.format(user_id))
+		if not user:
+			raise DBUserNotFoundError('User {} not found'.format(user_id))
 
-	if balance:
-		final_balance = str(balance)
-	elif delta:
-		final_balance = str(user['balance'] + delta)
+		if balance:
+			final_balance = str(balance)
+		elif delta:
+			final_balance = str(user['balance'] + delta)
 
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+		with self.db_cursor() as c:
+			query = '''
+				UPDATE account SET balance=%s
+				WHERE user_id=%s;
+			'''
 
-	query = '''
-		UPDATE ewallet SET balance=?
-		WHERE user_id=?;
-	'''
+			c.execute(query, (final_balance, user_id))
 
-	c.execute(query, (final_balance, user_id))
+		return self.get_user(user_id)
 
-	conn.commit()
-	conn.close()
+	def update_node_ping(self, npm, timestamp):
+		with self.db_cursor() as c:
+			query = '''
+				INSERT INTO nodes (npm, timestamp)
+				VALUES ( %s, %s )
+				ON CONFLICT(npm) DO UPDATE
+					SET timestamp = excluded.timestamp;
+			'''
 
-	return get_user(user_id)
+			c.execute(query, (npm, timestamp))
 
-def update_node_ping(npm, timestamp):
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+	def get_live_nodes(self, time_limit_secs=10, timestamp=None):
+		ts = timestamp or time.time()
 
-	query = '''
-		INSERT OR REPLACE INTO ewallet_nodes (npm, timestamp)
-		VALUES ( ?, ? );
-	'''
+		with self.db_cursor(commit=False) as c:
+			query = '''
+				SELECT npm, timestamp
+				FROM nodes
+				WHERE timestamp >= %s;
+			'''
 
-	c.execute(query, (npm, timestamp))
+			c.execute(query, (ts - time_limit_secs, ))
+			q_result = c.fetchall()
 
-	conn.commit()
-	conn.close()
+		result = []
+		for qr in q_result:
+			result.append({
+				'npm': qr[0],
+				'last_ts': qr[1]
+			})
 
-def get_live_nodes(time_limit_secs=10, timestamp=None):
-	ts = timestamp or time.time()
+		return result
 
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
+	def get_quorum(self, time_limit_secs=10, timestamp=None):
+		ts = timestamp or time.time()
 
-	query = '''
-		SELECT npm, timestamp
-		FROM ewallet_nodes
-		WHERE timestamp >= ?;
-	'''
+		with self.db_cursor(commit=False) as c:
+			query = '''
+				SELECT count(npm)
+				FROM nodes;
+			'''
 
-	c.execute(query, (ts - time_limit_secs, ))
-	q_result = c.fetchall()
-	conn.close()
+			c.execute(query)
+			q_result = c.fetchone()
 
-	result = []
-	for qr in q_result:
-		result.append({
-			'npm': qr[0],
-			'last_ts': qr[1]
-		})
+		total_nodes = int(q_result[0])
+		healthy_nodes = self.get_live_nodes(time_limit_secs=time_limit_secs, timestamp=timestamp)
 
-	return result
+		return {
+			'healthy_nodes': healthy_nodes,
+			'num_healthy': len(healthy_nodes),
+			'num_all': total_nodes
+		}
 
-def get_quorum(time_limit_secs=10, timestamp=None):
-	ts = timestamp or time.time()
-
-	conn = sqlite3.connect(__DBFILE)
-	c = conn.cursor()
-
-	query = '''
-		SELECT count(npm)
-		FROM ewallet_nodes;
-	'''
-
-	c.execute(query)
-	q_result = c.fetchone()
-	conn.close()
-
-	total_nodes = int(q_result[0])
-	healthy_nodes = get_live_nodes(time_limit_secs=time_limit_secs, timestamp=timestamp)
-
-	return {
-		'healthy_nodes': healthy_nodes,
-		'num_healthy': len(healthy_nodes),
-		'num_all': total_nodes
-	}
+def init(user, dbname):
+	ewallet_db = EWalletDB()
+	ewallet_db.set(user, dbname)

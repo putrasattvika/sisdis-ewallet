@@ -24,7 +24,7 @@ class GetSaldoConsumer(BaseConsumer):
 			routing_key = 'RESP_{}'.format(j['sender_id'])
 
 			try:
-				user = db.get_user(j['user_id'])
+				user = db.EWalletDB().get_user(j['user_id'])
 
 				balance = 0
 				status_code = None

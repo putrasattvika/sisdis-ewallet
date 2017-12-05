@@ -29,14 +29,14 @@ class TransferConsumer(BaseConsumer):
 			amount = j['nilai']
 
 			try:
-				user = db.get_user(user_id)
+				user = db.EWalletDB().get_user(user_id)
 
 				if not user:
 					status_code = codes.USER_DOES_NOT_EXISTS_ERROR
 				elif amount < 0 or amount > 1000000000:
 					status_code = codes.TRANSFER_AMT_ERROR
 				else:
-					db.alter_balance(user_id, delta=amount)
+					db.EWalletDB().alter_balance(user_id, delta=amount)
 					status_code = codes.OK
 			except DBError as e:
 				status_code = codes.DATABASE_ERROR

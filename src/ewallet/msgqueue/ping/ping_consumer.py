@@ -19,6 +19,6 @@ class PingConsumer(BaseConsumer):
 			dt = datetime.strptime(j['ts'], '%Y-%m-%d %H:%M:%S')
 			ts = int((dt - datetime.fromtimestamp(0)).total_seconds())
 
-			db.update_node_ping(j['npm'], ts)
+			db.EWalletDB().update_node_ping(j['npm'], ts)
 		except Exception as e:
 			logger.info('error@consumer_callback, body=[{}], errmsg=[{}]'.format(body, e.message))

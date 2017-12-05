@@ -27,7 +27,7 @@ class RegisterConsumer(BaseConsumer):
 			status_code = codes.UNKNOWN_ERROR
 
 			try:
-				if not db.create_user(j['user_id'], j['nama']):
+				if not db.EWalletDB().create_user(j['user_id'], j['nama']):
 					status_code = codes.UNKNOWN_ERROR
 				else:
 					status_code = codes.OK

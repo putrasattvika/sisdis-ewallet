@@ -20,7 +20,8 @@ API_MAP= {
 	'get-total-saldo': 'get_total_saldo'
 }
 
-DB_FILE = 'ewallet.db'
+DB_USER = 'ewallet'
+DB_NAME = 'ewallet'
 MY_ID = '1406527532'
 
 def get_args():
@@ -122,7 +123,7 @@ def rmq_publish_receive(host, username, password, exchange, send_key, recv_key, 
 	return json.loads(body)
 
 def handle(host, username, password, cmd, parameters, raw=False):
-	user = helper.db.get_user(parameters['user_id'])
+	user = helper.db.EWalletDB().get_user(parameters['user_id'])
 
 	if not raw and not user and cmd != 'get-total-saldo' and cmd != 'register':
 		print '[!] user_id ({}) is not present in this node.'.format(parameters['user_id'])
@@ -205,14 +206,14 @@ def handle(host, username, password, cmd, parameters, raw=False):
 		)
 
 		if not raw and res['status_transfer'] == 1:
-			helper.db.alter_balance(user['user_id'], delta=-parameters['amount'])
+			helper.db.EWalletDB().alter_balance(user['user_id'], delta=-parameters['amount'])
 	# else:
 	# 	res = ewallet_post(host, cmd, parameters)
 
 	return res
 
 def list_nodes(timestamp=None):
-	return helper.db.get_live_nodes(timestamp=timestamp)
+	return helper.db.EWalletDB().get_live_nodes(timestamp=timestamp)
 
 def main():
 	args = get_args()
@@ -223,7 +224,7 @@ def main():
 		args.mq_user = None
 		args.mq_pass = None
 
-	helper.db.init_db(DB_FILE)
+	helper.db.init(DB_USER, DB_NAME)
 
 	if args.cmd == 'list':
 		ts = time.time()

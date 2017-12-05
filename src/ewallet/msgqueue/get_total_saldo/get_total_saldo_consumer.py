@@ -21,7 +21,7 @@ class GetTotalSaldoConsumer(BaseConsumer):
 
 	@staticmethod
 	def callback(ch, method, properties, body):
-		quorum = db.get_quorum()
+		quorum = db.EWalletDB().get_quorum()
 		GetTotalSaldoConsumer._callback(ch, method, properties, body, quorum=quorum)
 
 	@staticmethod

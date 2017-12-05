@@ -25,6 +25,9 @@ __DEFAULT_RABBITMQ_HOST = '172.17.0.3'
 __DEFAULT_RABBITMQ_USER = 'sisdis'
 __DEFAULT_RABBITMQ_PASS = 'sisdis'
 
+__DEFAULT_DB_USER = 'ewallet'
+__DEFAULT_DB_NAME = 'ewallet'
+
 logging.getLogger("pika").setLevel(logging.WARNING)
 logger = logging.getLogger('ewallet.app')
 
@@ -47,6 +50,9 @@ def get_args():
 	parser.add_argument("--mq_user", help="rabbitmq username, default is {}".format(__DEFAULT_RABBITMQ_USER), default=__DEFAULT_RABBITMQ_USER)
 	parser.add_argument("--mq_pass", help="rabbitmq password, default is {}".format(__DEFAULT_RABBITMQ_PASS), default=__DEFAULT_RABBITMQ_PASS)
 
+	parser.add_argument("--db_user", help="database username, default is {}".format(__DEFAULT_DB_USER), default=__DEFAULT_DB_USER)
+	parser.add_argument("--db_name", help="database name, default is {}".format(__DEFAULT_DB_NAME), default=__DEFAULT_DB_NAME)
+
 	return parser.parse_args()
 
 def main():
@@ -57,7 +63,7 @@ def main():
 
 	logger.info('sttv_ewallet running with debug={} and id={}'.format(args.debug, args.id))
 
-	ewallet.ewallet_init('ewallet.db', str(args.id), debug=False)
+	ewallet.ewallet_init(args.db_user, args.db_name, str(args.id), debug=False)
 
 	if args.debug:
 		args.mq_host = '127.0.1.1'
