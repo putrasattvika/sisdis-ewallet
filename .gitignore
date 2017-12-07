@@ -2,3 +2,4 @@
 /**/*.pyc
 /src/ewallet.db
 /src/exclude.txt
+/conf/**/*

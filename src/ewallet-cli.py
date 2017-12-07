@@ -3,6 +3,7 @@
 import json
 import pika
 import time
+import ewallet
 import argparse
 import requests
 
@@ -145,7 +146,7 @@ def handle(my_id, host, username, password, cmd, parameters, raw=False):
 			})
 		)
 
-		if not raw and res['nilai_saldo'] == -1:
+		if not raw and 'nilai_saldo' in res and res['nilai_saldo'] == -1:
 			rmq_publish_receive(
 				host, username, password, 'EX_REGISTER',
 				'REQ_{}'.format(parameters['node_id']),
@@ -231,7 +232,7 @@ def main():
 		args.mq_user = 'docker'
 		args.mq_pass = 'docker'
 
-	helper.db.init(DB_USER, DB_NAME)
+	ewallet.ewallet_init(DB_USER, DB_NAME, args.id, debug=args.debug)
 
 	if args.cmd == 'list':
 		ts = time.time()

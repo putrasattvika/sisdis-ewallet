@@ -1,5 +1,6 @@
 import time
 import psycopg2
+import settings
 
 from errors import *
 from contextlib import contextmanager
@@ -124,8 +125,15 @@ class EWalletDB(object):
 			query = '''
 				SELECT npm, timestamp
 				FROM nodes
-				WHERE timestamp >= %s;
+				WHERE timestamp >= %s
 			'''
+
+			if settings.WHITELIST and len(settings.WHITELIST) > 0:
+				query += '''
+					AND npm in ({})
+				'''.format(', '.join(["'" + x +"'" for x in settings.WHITELIST]))
+
+			query += ';'
 
 			c.execute(query, (ts - time_limit_secs, ))
 			q_result = c.fetchall()
@@ -145,8 +153,15 @@ class EWalletDB(object):
 		with self.db_cursor(commit=False) as c:
 			query = '''
 				SELECT count(npm)
-				FROM nodes;
+				FROM nodes
 			'''
+
+			if settings.WHITELIST and len(settings.WHITELIST) > 0:
+				query += '''
+					WHERE npm in ({})
+				'''.format(', '.join(["'" + x +"'" for x in settings.WHITELIST]))
+
+			query += ';'
 
 			c.execute(query)
 			q_result = c.fetchone()
